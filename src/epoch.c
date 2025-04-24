@@ -3,7 +3,7 @@
 #include <time.h>
 
 struct timespec ts;
-uint64_t get_epoch_time_ms() {
+uint64_t get_epoch_time_ms(void) {
     timespec_get(&ts, TIME_UTC);
 
     long int sec_ms = ts.tv_sec * 1000;

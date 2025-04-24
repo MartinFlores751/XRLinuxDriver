@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-void log_init() {
+void log_init(void) {
     // ensure the log file exists, reroute stdout and stderr there
     char *log_file_path = NULL;
     FILE *log_file = get_or_create_state_file("driver.log", NULL, &log_file_path, NULL);

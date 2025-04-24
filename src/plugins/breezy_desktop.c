@@ -47,14 +47,14 @@ void breezy_desktop_reset_config(breezy_desktop_config *config) {
     config->sbs_display_size = 1.0;
     config->sbs_content = false;
     config->sbs_mode_stretched = false;
-};
+}
 
-void *breezy_desktop_default_config_func() {
+void *breezy_desktop_default_config_func(void) {
     breezy_desktop_config *config = calloc(1, sizeof(breezy_desktop_config));
     breezy_desktop_reset_config(config);
 
     return config;
-};
+}
 
 void breezy_desktop_handle_config_line_func(void* config, char* key, char* value) {
     breezy_desktop_config* temp_config = (breezy_desktop_config*) config;
@@ -72,7 +72,7 @@ void breezy_desktop_handle_config_line_func(void* config, char* key, char* value
     } else if (equal(key, "sbs_mode_stretched")) {
         boolean_config(key, value, &temp_config->sbs_mode_stretched);
     }
-};
+}
 
 const uint8_t DATA_LAYOUT_VERSION = 4;
 #define BOOL_TRUE 1
@@ -133,7 +133,7 @@ void do_write_config_data(int fd) {
     last_config_write_ts = get_epoch_time_ms();
 }
 
-char* get_shared_mem_file_path() {
+char* get_shared_mem_file_path(void) {
     static char* shared_mem_file_path = NULL;
     if (!shared_mem_file_path) {
         char file_path[1024];
@@ -150,7 +150,7 @@ static int fd_is_valid(int fd) {
     return fd >= 0 && (fcntl(fd, F_GETFD) != -1 || errno != EBADF);
 }
 
-static int get_shared_mem_fd() {
+static int get_shared_mem_fd(void) {
     if (!fd_is_valid(fd)) {
         fd = BREEZY_DESKTOP_FD_RESET;
     }
@@ -175,10 +175,10 @@ static int get_shared_mem_fd() {
     return fd;
 }
 
-void write_config_data() {
+void write_config_data(void) {
     // write this if the file exists, even if it's not actually enabled, so we can ensure that 
     // the file at least reflects the current state
-    if (fd_is_valid(fd) || is_productivity_granted() && bd_config && bd_config->enabled) {
+    if (fd_is_valid(fd) || (is_productivity_granted() && bd_config && bd_config->enabled)) {
         pthread_mutex_lock(&file_mutex);
         do_write_config_data(fd);
         pthread_mutex_unlock(&file_mutex);
@@ -227,8 +227,8 @@ void breezy_desktop_write_imu_data(float *values) {
     pthread_mutex_unlock(&file_mutex);
 }
 
-void breezy_desktop_reset_imu_data_func() {
-    if (fd_is_valid(fd) || is_productivity_granted() && bd_config && bd_config->enabled) {
+void breezy_desktop_reset_imu_data_func(void) {
+    if (fd_is_valid(fd) || (is_productivity_granted() && bd_config && bd_config->enabled)) {
         breezy_desktop_write_imu_data(&IMU_RESET[0]);
     }
 }
@@ -251,7 +251,7 @@ void breezy_desktop_set_config_func(void* config) {
     }
 };
 
-void breezy_desktop_handle_imu_data_func(uint32_t timestamp_ms, imu_quat_type quat, imu_euler_type velocities,
+void breezy_desktop_handle_imu_data_func(__attribute__((unused)) uint32_t timestamp_ms, __attribute__((unused)) imu_quat_type quat, __attribute__((unused)) imu_euler_type velocities,
                                           bool imu_calibrated, ipc_values_type *ipc_values) {
     if (is_productivity_granted() && bd_config && bd_config->enabled) {
         if (imu_calibrated && ipc_values) {
@@ -269,11 +269,11 @@ int breezy_desktop_register_features_func(char*** features) {
     return breezy_desktop_feature_count;
 }
 
-void breezy_desktop_start_func() {
+void breezy_desktop_start_func(void) {
     pthread_mutex_init(&file_mutex, NULL);
 }
 
-void breezy_desktop_device_connect_func() {
+void breezy_desktop_device_connect_func(void) {
     // delete this first, in case it's left over from a previous run
     remove(get_shared_mem_file_path());
     fd = BREEZY_DESKTOP_FD_RESET;

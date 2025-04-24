@@ -13,7 +13,7 @@ const char *joystick_output_mode = "joystick";
 const char *mouse_output_mode = "mouse";
 const char *external_only_output_mode = "external_only";
 
-driver_config_type *default_config() {
+driver_config_type *default_config(void) {
     driver_config_type *config = calloc(1, sizeof(driver_config_type));
     if (config == NULL) {
         log_error("Error allocating config");
@@ -48,7 +48,7 @@ void update_config(driver_config_type *config, driver_config_type *new_config) {
     free(new_config);
 }
 
-void boolean_config(char* key, char *value, bool *config_value) {
+void boolean_config(__attribute__((unused)) char* key, char *value, bool *config_value) {
     *config_value = equal(value, "true");
 }
 
@@ -74,7 +74,7 @@ void int_config(char* key, char *value, int *config_value) {
     }
 }
 
-void string_config(char* key, char *value, char **config_value) {
+void string_config(__attribute__((unused)) char* key, char *value, char **config_value) {
     free_and_clear(config_value);
     *config_value = strdup(value);
 }

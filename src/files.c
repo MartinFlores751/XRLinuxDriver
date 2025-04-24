@@ -87,9 +87,7 @@ FILE* get_or_create_file(const char *full_path, mode_t directory_mode, char *fil
     return fp;
 }
 
-char* get_xdg_file_path_for_app(char *app_name, char *filename, const char *xdg_env_var, const char *xdg_fallback_dir) {
-    struct stat st = {0};
-
+char* get_xdg_file_path_for_app(const char *app_name, char *filename, const char *xdg_env_var, const char *xdg_fallback_dir) {
     char* base_directory = getenv(xdg_env_var);
 
     if (base_directory == NULL) {
@@ -97,7 +95,7 @@ char* get_xdg_file_path_for_app(char *app_name, char *filename, const char *xdg_
         base_directory = (char*)concat(home, xdg_fallback_dir);
     }
 
-    int path_length = strlen(base_directory) + strlen(app_name) + strlen(filename) + 3;
+    size_t path_length = strlen(base_directory) + strlen(app_name) + strlen(filename) + 3;
     char *full_path = (char*)malloc(path_length * sizeof(char));
     snprintf(full_path, path_length, "%s/%s/%s", base_directory, app_name, filename);
 

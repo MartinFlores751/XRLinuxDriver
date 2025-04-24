@@ -8,7 +8,6 @@
 #include "plugins/sideview.h"
 #include "plugins/smooth_follow.h"
 #include "plugins/virtual_display.h"
-#include "state.h"
 
 #include <stdlib.h>
 
@@ -25,7 +24,7 @@ const plugin_type* all_plugins[PLUGIN_COUNT] = {
 };
 
 
-void all_plugins_start_func() {
+void all_plugins_start_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->start == NULL) continue;
         all_plugins[i]->start();
@@ -40,7 +39,7 @@ int all_plugins_register_features_func(char*** features) {
         int plugin_features_count = all_plugins[i]->register_features(&plugin_features);
 
         // append plugin_features
-        *features = realloc(*features, sizeof(char*) * (feature_count + plugin_features_count));
+        *features = realloc(*features, sizeof(char*) * (size_t) (feature_count + plugin_features_count));
         for (int j = 0; j < plugin_features_count; j++) {
             (*features)[feature_count + j] = plugin_features[j];
         }
@@ -50,7 +49,7 @@ int all_plugins_register_features_func(char*** features) {
 
     return feature_count;
 }
-void* all_plugins_default_config_func() {
+void* all_plugins_default_config_func(void) {
     void** configs = calloc(PLUGIN_COUNT, sizeof(void*));
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->default_config == NULL) continue;
@@ -79,7 +78,7 @@ void all_plugins_set_config_func(void* config) {
         all_plugins[i]->set_config(configs[i]);
     }
 }
-bool all_plugins_setup_ipc_func() {
+bool all_plugins_setup_ipc_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->setup_ipc == NULL) continue;
         if (!all_plugins[i]->setup_ipc()) {
@@ -90,7 +89,7 @@ bool all_plugins_setup_ipc_func() {
 
     return true;
 }
-void all_plugins_handle_ipc_change_func() {
+void all_plugins_handle_ipc_change_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->handle_ipc_change == NULL) continue;
         all_plugins[i]->handle_ipc_change();
@@ -111,25 +110,25 @@ void all_plugins_handle_imu_data_func(uint32_t timestamp_ms, imu_quat_type quat,
         all_plugins[i]->handle_imu_data(timestamp_ms, quat, velocities, imu_calibrated, ipc_values);
     }
 }
-void all_plugins_reset_imu_data_func() {
+void all_plugins_reset_imu_data_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->reset_imu_data == NULL) continue;
         all_plugins[i]->reset_imu_data();
     }
 }
-void all_plugins_handle_state_func() {
+void all_plugins_handle_state_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->handle_state == NULL) continue;
         all_plugins[i]->handle_state();
     }
 }
-void all_plugins_handle_device_connect_func() {
+void all_plugins_handle_device_connect_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->handle_device_connect == NULL) continue;
         all_plugins[i]->handle_device_connect();
     }
 }
-void all_plugins_handle_device_disconnect_func() {
+void all_plugins_handle_device_disconnect_func(void) {
     for (int i = 0; i < PLUGIN_COUNT; i++) {
         if (all_plugins[i]->handle_device_disconnect == NULL) continue;
         all_plugins[i]->handle_device_disconnect();

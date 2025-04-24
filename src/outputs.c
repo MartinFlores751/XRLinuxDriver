@@ -13,7 +13,6 @@
 #include "strings.h"
 #include "epoch.h"
 
-#include <errno.h>
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
 #include <math.h>
@@ -59,7 +58,7 @@ static int evdev_check(char * function, int i) {
 // returns an integer between -max_input and max_input, the magnitude of which is just the ratio of
 // input_velocity to max_input_velocity (where velocity is degrees/sec)
 int joystick_value(float input_velocity, float max_input_velocity) {
-  int value = round(input_velocity * max_input / max_input_velocity);
+  int value = (int) roundf(input_velocity * max_input / max_input_velocity);
   if (value < min_input) {
     return min_input;
   } else if (value > max_input) {
@@ -77,7 +76,7 @@ int joystick_debug_val_to_line(int value) {
     int joystick_middle = (max_input + min_input) / 2;
     int value_from_middle = value - joystick_middle;
     float value_percent_of_total = (float)value_from_middle / (max_input - min_input);
-    int line_value_from_middle = value_percent_of_total < 0 ? ceil(value_percent_of_total * JOYSTICK_DEBUG_LINES) : floor(value_percent_of_total * JOYSTICK_DEBUG_LINES);
+    int line_value_from_middle = value_percent_of_total < 0 ? (int) ceilf(value_percent_of_total * JOYSTICK_DEBUG_LINES) : (int) floorf(value_percent_of_total * JOYSTICK_DEBUG_LINES);
 
     return JOYSTICK_DEBUG_LINES_MIDDLE + line_value_from_middle;
 }
@@ -151,7 +150,7 @@ void joystick_debug(int old_joystick_x, int old_joystick_y, int new_joystick_x, 
 // the diff is 2 (-179 is equivalent to 181). This function takes the diff and then adjusts it if it detects
 // that we've crossed the +/-180 threshold.
 float degree_delta(float prev, float next) {
-    float delta = fmod(next - prev, 360);
+  float delta = fmodf(next - prev, 360.0f);
     if (delta > 180) {
         return delta - 360;
     } else if (delta < -180) {
@@ -164,9 +163,9 @@ float degree_delta(float prev, float next) {
 imu_euler_type get_euler_velocities(imu_euler_type euler, int imu_cycles_per_sec) {
     static imu_euler_type prev_euler = {0.0f, 0.0f, 0.0f};
     imu_euler_type velocities = {
-        .roll=degree_delta(prev_euler.roll, euler.roll) * imu_cycles_per_sec,
-        .pitch=degree_delta(prev_euler.pitch, euler.pitch) * imu_cycles_per_sec,
-        .yaw=degree_delta(prev_euler.yaw, euler.yaw) * imu_cycles_per_sec
+        .roll=degree_delta(prev_euler.roll, euler.roll) * (float) imu_cycles_per_sec,
+        .pitch=degree_delta(prev_euler.pitch, euler.pitch) * (float) imu_cycles_per_sec,
+        .yaw=degree_delta(prev_euler.yaw, euler.yaw) * (float) imu_cycles_per_sec
     };
 
     prev_euler = euler;
@@ -174,11 +173,11 @@ imu_euler_type get_euler_velocities(imu_euler_type euler, int imu_cycles_per_sec
     return velocities;
 }
 
-static void _init_outputs() {
+static void _init_outputs(void) {
     device_properties_type* device = device_checkout();
-    joystick_debug_imu_cycles = device == NULL ? 6 : ceil(100.0 * device->imu_cycles_per_s / 1000.0); // update joystick debug file roughly every 100 ms
-    joystick_max_degrees_per_s = 360.0 / 4;
-    float joystick_max_radians_per_s = joystick_max_degrees_per_s * M_PI / 180.0;
+    joystick_debug_imu_cycles = device == NULL ? 6 : 100 * device->imu_cycles_per_s / 1000; // update joystick debug file roughly every 100 ms
+    joystick_max_degrees_per_s = 360.0f / 4.0f;
+    float joystick_max_radians_per_s = joystick_max_degrees_per_s * (float) M_PI / 180.0f;
     device_checkin(device);
 
     evdev = libevdev_new();
@@ -224,7 +223,7 @@ static void _init_outputs() {
         evdev_check("libevdev_uinput_create_from_device", libevdev_uinput_create_from_device(evdev, LIBEVDEV_UINPUT_OPEN_MANAGED, &uinput));
 }
 
-static void _deinit_outputs() {
+static void _deinit_outputs(void) {
     last_imu_checkpoint_ms = 0;
     if (uinput) {
         libevdev_uinput_destroy(uinput);
@@ -236,19 +235,19 @@ static void _deinit_outputs() {
     }
 }
 
-void init_outputs() {
+void init_outputs(void) {
     pthread_mutex_lock(&outputs_mutex);
     _init_outputs();
     pthread_mutex_unlock(&outputs_mutex);
 }
 
-void deinit_outputs() {
+void deinit_outputs(void) {
     pthread_mutex_lock(&outputs_mutex);
     _deinit_outputs();
     pthread_mutex_unlock(&outputs_mutex);
 }
 
-void reinit_outputs() {
+void reinit_outputs(void) {
     pthread_mutex_lock(&outputs_mutex);
     _deinit_outputs();
     _init_outputs();
@@ -256,7 +255,7 @@ void reinit_outputs() {
 }
 
 #define WAIT_FOR_IMU_ATTEMPTS 5
-bool wait_for_imu_start() {
+bool wait_for_imu_start(void) {
     int attempts = 0;
     while (!is_imu_alive()) {
         if (attempts++ == WAIT_FOR_IMU_ATTEMPTS) return false;
@@ -348,21 +347,21 @@ void handle_imu_update(uint32_t timestamp_ms, imu_quat_type quat, imu_euler_type
                 static float mouse_z_remainder = 0.0;
 
                 // smooth out the mouse values using the remainders left over from previous writes
-                float mouse_sensitivity_seconds = (float) config()->mouse_sensitivity / device->imu_cycles_per_s;
+                float mouse_sensitivity_seconds = (float) config()->mouse_sensitivity / (float) device->imu_cycles_per_s;
                 float next_x = x_velocity * mouse_sensitivity_seconds + mouse_x_remainder;
-                int next_x_int = round(next_x);
+                int next_x_int = (int) roundf(next_x);
                 mouse_x_remainder = next_x - next_x_int;
 
                 float next_y = y_velocity * mouse_sensitivity_seconds + mouse_y_remainder;
-                int next_y_int = round(next_y);
+                int next_y_int = (int) roundf(next_y);
                 mouse_y_remainder = next_y - next_y_int;
 
                 float next_z = -velocities.roll * mouse_sensitivity_seconds + mouse_z_remainder;
-                int next_z_int = round(next_z);
-                mouse_z_remainder = next_z - next_z_int;
+                float next_z_int = roundf(next_z);
+                mouse_z_remainder = next_z - (float) next_z_int;
 
-                libevdev_uinput_write_event(uinput, EV_REL, REL_X, next_x_int);
-                libevdev_uinput_write_event(uinput, EV_REL, REL_Y, next_y_int);
+                libevdev_uinput_write_event(uinput, EV_REL, REL_X, (int) next_x_int);
+                libevdev_uinput_write_event(uinput, EV_REL, REL_Y, (int) next_y_int);
                 if (config()->use_roll_axis)
                     libevdev_uinput_write_event(uinput, EV_REL, REL_Z, next_z_int);
             } else if (!config()->external_mode) {
@@ -401,6 +400,6 @@ void reset_imu_data(ipc_values_type *ipc_values) {
     plugins.reset_imu_data();
 }
 
-bool is_imu_alive() {
+bool is_imu_alive(void) {
     return get_epoch_time_ms() - last_healthy_imu_timestamp_ms < MS_PER_SEC;
 }

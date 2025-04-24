@@ -34,8 +34,8 @@ float accel_adjust_constant;
 
 void init_multi_tap(int init_imu_cycles_per_s) {
     imu_cycles_per_s = init_imu_cycles_per_s;
-    float desired_buffer_size = (float)MT_BUFFER_MS / 1000.0 * imu_cycles_per_s;
-    mt_buffer_size = floor(desired_buffer_size);
+    float desired_buffer_size = (float) MT_BUFFER_MS / 1000.0f * (float) imu_cycles_per_s;
+    mt_buffer_size = (int) floorf(desired_buffer_size);
 
     // this is the ratio based on how much we had to round
     accel_adjust_constant = (float)mt_buffer_size/desired_buffer_size;
@@ -53,13 +53,13 @@ int detect_multi_tap(imu_euler_type velocities, uint32_t timestamp, bool debug) 
         // the oldest value is zero/unset if the buffer hasn't been filled yet, so we check prior to doing a
         // push/pop, to know if the value returned will be relevant to our calculations
         bool was_full = is_full(mt_buffer);
-        float next_value = sqrt(velocities.roll * velocities.roll + velocities.pitch * velocities.pitch + velocities.yaw * velocities.yaw);
+        float next_value = sqrtf(velocities.roll * velocities.roll + velocities.pitch * velocities.pitch + velocities.yaw * velocities.yaw);
         float oldest_value = push(mt_buffer, next_value);
 
         if (was_full) {
             // extrapolate out to seconds, so the threshold can stay the same regardless of buffer size
-            float acceleration = (next_value - oldest_value) * (float)imu_cycles_per_s / mt_buffer_size * accel_adjust_constant;
-            int tap_elapsed_ms = timestamp - tap_start_time;
+            float acceleration = (next_value - oldest_value) * (float) imu_cycles_per_s / (float) mt_buffer_size * accel_adjust_constant;
+            int tap_elapsed_ms = (int) (timestamp - tap_start_time);
             if ((tap_count > 0 || mt_state != MT_STATE_IDLE) && tap_elapsed_ms > max_tap_period_ms) {
                 peak_max = 0.0;
                 mt_state = MT_STATE_IDLE;
@@ -99,7 +99,7 @@ int detect_multi_tap(imu_euler_type velocities, uint32_t timestamp, bool debug) 
                                 if (debug) log_debug("rise and fall took %d, too long for a tap\n", tap_elapsed_ms);
                                 peak_max = 0.0;
                                 mt_state = MT_STATE_IDLE;
-                                tap_count == 0;
+                                tap_count = 0;
                             } else {
                                 if (debug) log_debug("rise and fall took %d\n", tap_elapsed_ms);
                                 tap_count++;
@@ -110,8 +110,8 @@ int detect_multi_tap(imu_euler_type velocities, uint32_t timestamp, bool debug) 
                         break;
                     }
                     case MT_STATE_PAUSE: {
-                        if (fabs(acceleration) < mt_pause_threshold) {
-                            int pause_elapsed_ms = timestamp - pause_start_time;
+                        if (fabsf(acceleration) < mt_pause_threshold) {
+                          int pause_elapsed_ms = (int) (timestamp - pause_start_time);
                             if (pause_elapsed_ms > min_pause_ms)
                                 // paused long enough, wrap back around to idle where we can detect the next rise
                                 mt_state = MT_STATE_IDLE;

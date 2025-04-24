@@ -51,7 +51,7 @@ static connected_device_type* _find_connected_device(libusb_device *usb_device, 
 }
 
 static handle_device_update_func handle_device_update_callback = NULL;
-int hotplug_callback(libusb_context *ctx, libusb_device *usb_device, libusb_hotplug_event event, void *user_data) {
+int hotplug_callback(__attribute__((unused)) libusb_context *ctx, libusb_device *usb_device, libusb_hotplug_event event, __attribute__((unused)) void *user_data) {
     if (handle_device_update_callback == NULL) {
         log_error("hotplug_callback: init_devices must be called first\n");
         return 1;
@@ -107,18 +107,18 @@ void init_devices(handle_device_update_func callback) {
     }
 }
 
-void handle_device_connection_events() {
+void handle_device_connection_events(void) {
     struct timeval tv = {5, 0};
     libusb_handle_events_timeout_completed(ctx, &tv, NULL);
 }
 
-void deinit_devices() {
+void deinit_devices(void) {
     if (callback_handle != (libusb_hotplug_callback_handle)NULL) libusb_hotplug_deregister_callback(ctx, callback_handle);
     handle_device_update_callback = NULL;
     libusb_exit(ctx);
 }
 
-connected_device_type* find_connected_device() {
+connected_device_type* find_connected_device(void) {
     libusb_device **usb_device_list;
     ssize_t usb_device_count = libusb_get_device_list(ctx, &usb_device_list);
     if (usb_device_count < 0) {

@@ -4,7 +4,7 @@
 static pthread_mutex_t curl_lock = PTHREAD_MUTEX_INITIALIZER;
 static int ref_count = 0;
 
-void curl_init() {
+void curl_init(void) {
     pthread_mutex_lock(&curl_lock);
     if(ref_count == 0) {
         curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -13,7 +13,7 @@ void curl_init() {
     pthread_mutex_unlock(&curl_lock);
 }
 
-void curl_cleanup() {
+void curl_cleanup(void) {
     pthread_mutex_lock(&curl_lock);
     ref_count--;
     if(ref_count == 0) {

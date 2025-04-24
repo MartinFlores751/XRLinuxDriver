@@ -25,23 +25,23 @@ const int virtual_display_feature_count = 2;
 
 void virtual_display_reset_config(virtual_display_config *config) {
     config->enabled = false;
-    config->look_ahead_override = 0.0;
-    config->display_zoom = 1.0;
-    config->sbs_display_distance = 1.0;
-    config->sbs_display_size = 1.0;
+    config->look_ahead_override = 0.0f;
+    config->display_zoom = 1.0f;
+    config->sbs_display_distance = 1.0f;
+    config->sbs_display_size = 1.0f;
     config->sbs_content = false;
     config->sbs_mode_stretched = true;
     config->passthrough_smooth_follow_enabled = false;
     config->follow_mode_enabled = false;
     config->curved_display = false;
-};
+}
 
-void *virtual_display_default_config_func() {
+void *virtual_display_default_config_func(void) {
     virtual_display_config *config = calloc(1, sizeof(virtual_display_config));
     virtual_display_reset_config(config);
 
     return config;
-};
+}
 
 void virtual_display_handle_config_line_func(void* config, char* key, char* value) {
     virtual_display_config* temp_config = (virtual_display_config*) config;
@@ -66,15 +66,15 @@ void virtual_display_handle_config_line_func(void* config, char* key, char* valu
     } else if (equal(key, "curved_display")) {
         boolean_config(key, value, &temp_config->curved_display);
     }
-};
+}
 
-void virtual_display_handle_device_disconnect_func() {
+void virtual_display_handle_device_disconnect_func(void) {
     bool enabled = false;
     if (virtual_display_ipc_values) *virtual_display_ipc_values->enabled = enabled;
     set_gamescope_reshade_effect_uniform_variable("virtual_display_enabled", &enabled, 1, sizeof(bool), true);
-};
+}
 
-void set_virtual_display_ipc_values() {
+void set_virtual_display_ipc_values(void) {
     if (!vd_config) vd_config = virtual_display_default_config_func();
 
     device_properties_type* device = device_checkout();
@@ -84,26 +84,26 @@ void set_virtual_display_ipc_values() {
                             vd_config->follow_mode_enabled &&
                             vd_config->passthrough_smooth_follow_enabled);
         float display_zoom = state()->sbs_mode_enabled ? vd_config->sbs_display_size : vd_config->display_zoom;
-        float display_north_offset = state()->sbs_mode_enabled ? vd_config->sbs_display_distance : 1.0;
+        float display_north_offset = state()->sbs_mode_enabled ? vd_config->sbs_display_distance : 1.0f;
         float look_ahead_constant = vd_config->look_ahead_override == 0 ?
                                         device->look_ahead_constant :
                                         vd_config->look_ahead_override;
         float look_ahead_ftm =  vd_config->look_ahead_override == 0 ? 
                                     device->look_ahead_frametime_multiplier : 
-                                    0.0;
+                                    0.0f;
         float look_ahead_cfg[4] = {look_ahead_constant, look_ahead_ftm, device->look_ahead_scanline_adjust, device->look_ahead_ms_cap};
 
         // computed values based on display and SBS config/state
         float display_aspect_ratio = (float)device->resolution_w / (float)device->resolution_h;
-        float diag_to_vert_ratio = sqrt(pow(display_aspect_ratio, 2) + 1);
-        float half_fov_z_rads = degree_to_radian(device->fov / diag_to_vert_ratio) / 2;
+        float diag_to_vert_ratio = sqrtf(powf(display_aspect_ratio, 2.0f) + 1.0f);
+        float half_fov_z_rads = degree_to_radian(device->fov / diag_to_vert_ratio) / 2.0f;
         float half_fov_y_rads = half_fov_z_rads * display_aspect_ratio;
-        float fov_half_widths[2] = {tan(half_fov_y_rads), tan(half_fov_z_rads)};
-        float fov_widths[2] = {fov_half_widths[0] * 2, fov_half_widths[1] * 2};
-        float texcoord_x_limits[2] = {0.0, 1.0};
-        float texcoord_x_limits_r[2] = {0.0, 1.0};
-        float lens_vector[3] = {device->lens_distance_ratio, 0.0, 0.0};
-        float lens_vector_r[3] = {device->lens_distance_ratio, 0.0, 0.0};
+        float fov_half_widths[2] = {tanf(half_fov_y_rads), tanf(half_fov_z_rads)};
+        float fov_widths[2] = {fov_half_widths[0] * 2.0f, fov_half_widths[1] * 2.0f};
+        float texcoord_x_limits[2] = {0.0f, 1.0f};
+        float texcoord_x_limits_r[2] = {0.0f, 1.0f};
+        float lens_vector[3] = {device->lens_distance_ratio, 0.0f, 0.0f};
+        float lens_vector_r[3] = {device->lens_distance_ratio, 0.0f, 0.0f};
 
         // gamescope's texture will always be full width (no black bars)
         bool sbs_mode_full_width = is_gamescope_reshade_ipc_connected() || vd_config->sbs_mode_stretched;
@@ -113,20 +113,20 @@ void set_virtual_display_ipc_values() {
         bool sbs_mode_stretched = !is_gamescope_reshade_ipc_connected() && vd_config->sbs_mode_stretched;
 
         if (state()->sbs_mode_enabled) {
-            lens_vector[1] = device->lens_distance_ratio / 3.0;
+            lens_vector[1] = device->lens_distance_ratio / 3.0f;
             lens_vector_r[1] = -lens_vector[1];
             if (vd_config->sbs_content) {
-                texcoord_x_limits[1] = 0.5;
-                texcoord_x_limits_r[0] = 0.5;
+                texcoord_x_limits[1] = 0.5f;
+                texcoord_x_limits_r[0] = 0.5f;
                 if (!sbs_mode_full_width) {
-                    texcoord_x_limits[0] = 0.25;
-                    texcoord_x_limits_r[1] = 0.75;
+                    texcoord_x_limits[0] = 0.25f;
+                    texcoord_x_limits_r[1] = 0.75f;
                 }
             } else if (!sbs_mode_full_width) {
-                texcoord_x_limits[0] = 0.25;
-                texcoord_x_limits[1] = 0.75;
-                texcoord_x_limits_r[0] = 0.25;
-                texcoord_x_limits_r[1] = 0.75;
+                texcoord_x_limits[0] = 0.25f;
+                texcoord_x_limits[1] = 0.75f;
+                texcoord_x_limits_r[0] = 0.25f;
+                texcoord_x_limits_r[1] = 0.75f;
             }
         }
         if (virtual_display_ipc_values) {
@@ -208,7 +208,7 @@ void virtual_display_set_config_func(void* config) {
     vd_config = temp_config;
 
     set_virtual_display_ipc_values();
-};
+}
 
 int virtual_display_register_features_func(char*** features) {
     *features = calloc(virtual_display_feature_count, sizeof(char*));
@@ -235,7 +235,7 @@ const char *virtual_display_lens_vector_ipc_name = "lens_vector";
 const char *virtual_display_lens_vector_r_ipc_name = "lens_vector_r";
 const char *virtual_display_curved_display_ipc_name = "curved_display";
 
-bool virtual_display_setup_ipc_func() {
+bool virtual_display_setup_ipc_func(void) {
     bool debug = config()->debug_ipc;
     if (!virtual_display_ipc_values) virtual_display_ipc_values = calloc(1, sizeof(virtual_display_ipc_values_type));
     setup_ipc_value(virtual_display_enabled_ipc_name, (void**) &virtual_display_ipc_values->enabled, sizeof(bool), debug);
@@ -260,7 +260,7 @@ bool virtual_display_setup_ipc_func() {
     return true;
 }
 
-void virtual_display_handle_state_func() {
+void virtual_display_handle_state_func(void) {
     bool sbs_enabled = state()->sbs_mode_enabled && is_sbs_granted();
     if (virtual_display_ipc_values) *virtual_display_ipc_values->sbs_enabled = sbs_enabled;
     set_gamescope_reshade_effect_uniform_variable("sbs_enabled", &sbs_enabled, 1, sizeof(bool), true);

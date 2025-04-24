@@ -51,15 +51,15 @@ const device_properties_type viture_one_properties = {
     .calibration_setup                  = CALIBRATION_SETUP_AUTOMATIC,
     .resolution_w                       = 1920,
     .resolution_h                       = 1080,
-    .fov                                = 40.0,
-    .lens_distance_ratio                = 0.05,
+    .fov                                = 40.0f,
+    .lens_distance_ratio                = 0.05f,
     .calibration_wait_s                 = 1,
     .imu_cycles_per_s                   = 60,
     .imu_buffer_size                    = 1,
-    .look_ahead_constant                = 20.0,
-    .look_ahead_frametime_multiplier    = 0.6,
-    .look_ahead_scanline_adjust         = 10.0,
-    .look_ahead_ms_cap                  = 40.0,
+    .look_ahead_constant                = 20.0f,
+    .look_ahead_frametime_multiplier    = 0.6f,
+    .look_ahead_scanline_adjust         = 10.0f,
+    .look_ahead_ms_cap                  = 40.0f,
     .sbs_mode_supported                 = true,
     .firmware_update_recommended        = false
 };
@@ -121,13 +121,13 @@ void handle_viture_event(uint8_t *data, uint16_t len, uint32_t timestamp) {
 }
 
 bool sbs_mode_enabled = false;
-void viture_mcu_callback(uint16_t msgid, uint8_t *data, uint16_t len, uint32_t ts) {
+void viture_mcu_callback(uint16_t msgid, uint8_t *data, __attribute__((unused)) uint16_t len, __attribute__((unused)) uint32_t ts) {
     if (msgid == MCU_SBS_ADJUSTMENT_MSG) {
         sbs_mode_enabled = data[0] == MCU_SBS_ADJUSTMENT_ENABLED;
     }
 }
 
-device_properties_type* viture_supported_device(uint16_t vendor_id, uint16_t product_id, uint8_t usb_bus, uint8_t usb_address) {
+device_properties_type* viture_supported_device(uint16_t vendor_id, uint16_t product_id, __attribute__((unused)) uint8_t usb_bus, __attribute__((unused)) uint8_t usb_address) {
     if (vendor_id == VITURE_ID_VENDOR) {
         for (int i=0; i < VITURE_ID_PRODUCT_COUNT; i++) {
             if (product_id == viture_supported_id_product[i]) {
@@ -150,7 +150,7 @@ device_properties_type* viture_supported_device(uint16_t vendor_id, uint16_t pro
     }
 
     return NULL;
-};
+}
 
 static void disconnect(bool soft) {
     if (connected) {
@@ -165,7 +165,7 @@ static void disconnect(bool soft) {
     }
 }
 
-bool viture_device_connect() {
+bool viture_device_connect(void) {
     if (!connected || get_imu_state() != STATE_ON) {
         // newer firmware may require a bit of a wait after the device is plugged in before attempting to connect
         sleep(2);
@@ -206,7 +206,7 @@ bool viture_device_connect() {
     return connected;
 }
 
-void viture_block_on_device() {
+void viture_block_on_device(void) {
     device_properties_type* device = device_checkout();
     if (device != NULL) {
         int imu_state = get_imu_state();
@@ -218,24 +218,24 @@ void viture_block_on_device() {
     }
     disconnect(false);
     device_checkin(device);
-};
+}
 
-bool viture_device_is_sbs_mode() {
+bool viture_device_is_sbs_mode(void) {
     return sbs_mode_enabled;
-};
+}
 
 bool viture_device_set_sbs_mode(bool enabled) {
     sbs_mode_enabled = enabled;
     return set_3d(enabled) == ERR_SUCCESS;
-};
+}
 
-bool viture_is_connected() {
+bool viture_is_connected(void) {
     return connected;
-};
+}
 
 void viture_disconnect(bool soft) {
     disconnect(soft);
-};
+}
 
 const device_driver_type viture_driver = {
     .supported_device_func              = viture_supported_device,

@@ -1,5 +1,4 @@
 #include "config.h"
-#include "devices.h"
 #include "features/smooth_follow.h"
 #include "ipc.h"
 #include "logging.h"
@@ -30,7 +29,7 @@ void *sideview_default_config_func() {
     config->display_size = 1.0;
 
     return config;
-};
+}
 
 void sideview_handle_config_line_func(void* config, char* key, char* value) {
     sideview_config* temp_config = (sideview_config*) config;
@@ -48,13 +47,13 @@ void sideview_handle_config_line_func(void* config, char* key, char* value) {
     } else if (equal(key, "sideview_smooth_follow_enabled") && is_smooth_follow_granted()) {
         boolean_config(key, value, &temp_config->smooth_follow_enabled);
     }
-};
+}
 
 void sideview_handle_device_disconnect_func() {
     bool enabled = false;
     if (sideview_ipc_values) *sideview_ipc_values->enabled = enabled;
     set_gamescope_reshade_effect_uniform_variable("sideview_enabled", &enabled, 1, sizeof(bool), true);
-};
+}
 
 void set_sideview_ipc_values_from_config() {
     if (!sv_config) sv_config = sideview_default_config_func();
@@ -87,7 +86,7 @@ void sideview_set_config_func(void* config) {
             log_message("Sideview position has been changed to %s\n", sideview_position_names[temp_config->position]);
 
         // smooth follow mode allows sizes > 1, so we need to clamp it if in sideview mode
-        if (!temp_config->smooth_follow_enabled && temp_config->display_size > 1.0) temp_config->display_size = 1.0;
+        if (!temp_config->smooth_follow_enabled && temp_config->display_size > 1.0f) temp_config->display_size = 1.0f;
         if (sv_config->display_size != temp_config->display_size)
             log_message("Sideview display size has been changed to %f\n", temp_config->display_size);
 
@@ -96,7 +95,7 @@ void sideview_set_config_func(void* config) {
     sv_config = temp_config;
 
     set_sideview_ipc_values_from_config();
-};
+}
 
 const char *sideview_enabled_name = "sideview_enabled";
 const char *sideview_position_name = "sideview_position";

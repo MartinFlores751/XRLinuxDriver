@@ -11,15 +11,15 @@ const float imu_reset_data[16] = {
 };
 
 float degree_to_radian(float deg) {
-    return deg * M_PI / 180.0f;
+    return deg * (float) M_PI / 180.0f;
 }
 
 float radian_to_degree(float rad) {
-    return rad * 180.0f / M_PI;
+    return rad * 180.0f / (float) M_PI;
 }
 
 imu_quat_type normalize_quaternion(imu_quat_type q) {
-    float magnitude = sqrt(q.w*q.w + q.x*q.x + q.y*q.y + q.z*q.z);
+    float magnitude = sqrtf(q.w*q.w + q.x*q.x + q.y*q.y + q.z*q.z);
     q.w /= magnitude;
     q.x /= magnitude;
     q.y /= magnitude;
@@ -57,12 +57,12 @@ imu_quat_type euler_to_quaternion_xyz(imu_euler_type euler) {
     float yaw = degree_to_radian(euler.yaw);
 
     // Compute the half angles
-    float cx = cos(roll * 0.5f);
-    float cy = cos(pitch * 0.5f);
-    float cz = cos(yaw * 0.5f);
-    float sx = sin(roll * 0.5f);
-    float sy = sin(pitch * 0.5f);
-    float sz = sin(yaw * 0.5f);
+    float cx = cosf(roll * 0.5f);
+    float cy = cosf(pitch * 0.5f);
+    float cz = cosf(yaw * 0.5f);
+    float sx = sinf(roll * 0.5f);
+    float sy = sinf(pitch * 0.5f);
+    float sz = sinf(yaw * 0.5f);
 
     // Compute the quaternion components
     imu_quat_type q = {
@@ -82,12 +82,12 @@ imu_quat_type euler_to_quaternion_zyx(imu_euler_type euler) {
     float yaw = degree_to_radian(euler.yaw);
 
     // Compute the half angles
-    float cx = cos(roll * 0.5f);
-    float cy = cos(pitch * 0.5f);
-    float cz = cos(yaw * 0.5f);
-    float sx = sin(roll * 0.5f);
-    float sy = sin(pitch * 0.5f);
-    float sz = sin(yaw * 0.5f);
+    float cx = cosf(roll * 0.5f);
+    float cy = cosf(pitch * 0.5f);
+    float cz = cosf(yaw * 0.5f);
+    float sx = sinf(roll * 0.5f);
+    float sy = sinf(pitch * 0.5f);
+    float sz = sinf(yaw * 0.5f);
 
     // Compute the quaternion components
     imu_quat_type q = {
@@ -107,12 +107,12 @@ imu_quat_type euler_to_quaternion_zxy(imu_euler_type euler) {
     float yaw = degree_to_radian(euler.yaw);
 
     // Compute the half angles
-    float cx = cos(roll * 0.5f);
-    float cy = cos(pitch * 0.5f);
-    float cz = cos(yaw * 0.5f);
-    float sx = sin(roll * 0.5f);
-    float sy = sin(pitch * 0.5f);
-    float sz = sin(yaw * 0.5f);
+    float cx = cosf(roll * 0.5f);
+    float cy = cosf(pitch * 0.5f);
+    float cz = cosf(yaw * 0.5f);
+    float sx = sinf(roll * 0.5f);
+    float sy = sinf(pitch * 0.5f);
+    float sz = sinf(yaw * 0.5f);
 
     // Compute the quaternion components
     imu_quat_type q = {
@@ -137,7 +137,7 @@ imu_euler_type quaternion_to_euler_xyz(imu_quat_type q) {
     float sinp = 2.0f * (q.w * q.y - q.z * q.x);
     if (fabsf(sinp) >= 1.0f) {
         // Use 90 degrees if out of range
-        euler.pitch = radian_to_degree(copysignf(M_PI / 2.0f, sinp));
+        euler.pitch = radian_to_degree(copysignf((float) M_PI / 2.0f, sinp));
     } else {
         euler.pitch = radian_to_degree(asinf(sinp));
     }
@@ -157,7 +157,7 @@ imu_euler_type quaternion_to_euler_zyx(imu_quat_type q) {
     float sinp = 2.0f * (q.w * q.y - q.z * q.x);
     if (fabsf(sinp) >= 1.0f) {
         // Use 90 degrees if out of range
-        euler.pitch = radian_to_degree(copysignf(M_PI / 2.0f, sinp));
+        euler.pitch = radian_to_degree(copysignf((float) M_PI / 2.0f, sinp));
         
         // Gimbal lock case
         // In the gimbal lock case with pitch at +/-90 degrees,
@@ -198,7 +198,7 @@ imu_euler_type quaternion_to_euler_zxy(imu_quat_type q) {
     float sinp = 2.0f * (q.w * q.y - q.x * q.z);
     if (fabsf(sinp) >= 1.0f) {
         // Use 90 degrees if out of range
-        euler.pitch = radian_to_degree(copysignf(M_PI / 2.0f, sinp));
+        euler.pitch = radian_to_degree(copysignf((float) M_PI / 2.0f, sinp));
     } else {
         euler.pitch = radian_to_degree(asinf(sinp));
     }

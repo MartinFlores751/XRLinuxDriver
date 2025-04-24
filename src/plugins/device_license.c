@@ -80,9 +80,9 @@ const char* DEVICE_LICENSE_TEMP_FILE_NAME = "license.tmp.json";
         }
 
         // Convert the signature from hex string to binary
-        int sig_len = strlen(signature) / 2;
-        unsigned char* binary_sig = calloc(1, sig_len);
-        for (int i = 0; i < sig_len; i++) {
+        size_t sig_len = strlen(signature) / 2;
+        unsigned char* binary_sig = malloc(sig_len);
+        for (size_t i = 0; i < sig_len; i++) {
             unsigned int temp;
             sscanf(signature + 2*i, "%02x", &temp);
             binary_sig[i] = temp;
@@ -106,16 +106,20 @@ const char* DEVICE_LICENSE_TEMP_FILE_NAME = "license.tmp.json";
     }
 
 
-    int get_license_features(FILE* file, char*** features) {
+int get_license_features(FILE* file, char*** features) {
         fseek(file, 0, SEEK_END);
         long length = ftell(file);
         fseek(file, 0, SEEK_SET);
-        char* buffer = calloc(1, length);
+        char* buffer = malloc((size_t) length + 1);
         if (buffer) {
             fread(buffer, 1, length, file);
         }
+	buffer[length] = '\0';
 
-        json_object *root = json_tokener_parse(buffer);
+	json_tokener *tok = json_tokener_new();
+        json_object *root = json_tokener_parse_ex(tok, buffer, (int) length + 1);
+        json_tokener_free(tok);
+        // json_object *root = json_tokener_parse(buffer);
         free(buffer);
         buffer = NULL;
 

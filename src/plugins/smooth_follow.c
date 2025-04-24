@@ -25,36 +25,36 @@ typedef enum {
 } follow_state_type;
 
 const smooth_follow_params init_params = {
-    .lower_angle_threshold = 2.0,
-    .upper_angle_threshold = 2.0,
+    .lower_angle_threshold = 2.0f,
+    .upper_angle_threshold = 2.0f,
     .delay_ms = 0,
-    .return_to_angle = 2.0,
+    .return_to_angle = 2.0f,
 
     // moves 99.9% of the way to the center in 1 second
-    .interpolation_ratio_ms = 1-pow(1 - 0.999, 1.0/1000.0)
+    .interpolation_ratio_ms = 1.0f-powf(1.0f - 0.999f, 1.0f/1000.0f)
 };
 
 const smooth_follow_params sticky_params = {
-    .lower_angle_threshold = 0.5,
-    .upper_angle_threshold = 0.5,
+    .lower_angle_threshold = 0.5f,
+    .upper_angle_threshold = 0.5f,
     .delay_ms = 0,
-    .return_to_angle = 0.5,
+    .return_to_angle = 0.5f,
 
     // moves 99% of the way to the center in 1 second
-    .interpolation_ratio_ms = 1-pow(1 - 0.99, 1.0/1000.0)
+    .interpolation_ratio_ms = 1.0f-powf(1.0f - 0.99f, 1.0f/1000.0f)
 };
 
 const smooth_follow_params loose_follow_params = {
-    .lower_angle_threshold = 20.0,
-    .upper_angle_threshold = 40.0,
+    .lower_angle_threshold = 20.0f,
+    .upper_angle_threshold = 40.0f,
     .delay_ms = 2000,
-    .return_to_angle = 5.0,
+    .return_to_angle = 5.0f,
 
     // moves 99% of the way to the center in 1.5 seconds
-    .interpolation_ratio_ms = 1-pow(1 - 0.99, 1.0/1500.0)
+    .interpolation_ratio_ms = 1.0f-powf(1.0f - 0.99f, 1.0f/1500.0f)
 };
 
-uint32_t get_time_ms() {
+uint32_t get_time_ms(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -63,24 +63,24 @@ uint32_t get_time_ms() {
 smooth_follow_config* sf_config = NULL;
 smooth_follow_params* sf_params = NULL;
 
-void *smooth_follow_default_config_func() {
+void *smooth_follow_default_config_func(void) {
     smooth_follow_config *config = calloc(1, sizeof(smooth_follow_config));
     config->virtual_display_enabled = false;
     config->virtual_display_follow_enabled = false;
     config->sideview_enabled = false;
     config->sideview_follow_enabled = false;
-    config->sideview_follow_threshold = 0.5;
-    config->sideview_display_size = 1.0;
+    config->sideview_follow_threshold = 0.5f;
+    config->sideview_display_size = 1.0f;
     config->breezy_desktop_enabled = false;
-    config->virtual_display_size = 1.0;
-    config->sbs_display_distance = 1.0;
-    config->sbs_display_size = 1.0;
+    config->virtual_display_size = 1.0f;
+    config->sbs_display_distance = 1.0f;
+    config->sbs_display_size = 1.0f;
     config->track_roll = false;
     config->track_pitch = true;
     config->track_yaw = true;
 
     return config;
-};
+}
 
 // TODO -   This has become a bit of a mess with smooth_follow having to be aware of how it interacts with
 //          3 other plugins and their configs and control flags. Smooth follow should just become a utility 
@@ -120,12 +120,12 @@ void smooth_follow_handle_config_line_func(void* config, char* key, char* value)
 
 static bool smooth_follow_enabled=false;
 follow_state_type follow_state = FOLLOW_STATE_NONE;
-uint32_t last_timestamp_ms = -1;
+uint32_t last_timestamp_ms = UINT32_MAX;
 static imu_quat_type *origin_quat = NULL;
 static bool snap_back_to_center = false;
-uint32_t start_snap_back_timestamp_ms = -1;
+uint32_t start_snap_back_timestamp_ms = UINT32_MAX;
 static bool was_sbs_mode_enabled = false;
-static void update_smooth_follow_params() {
+static void update_smooth_follow_params(void) {
     if (!sf_params) sf_params = calloc(1, sizeof(smooth_follow_params));
     bool virtual_display_follow = sf_config->virtual_display_enabled && sf_config->virtual_display_follow_enabled;
     bool smooth_follow = sf_config->sideview_enabled && sf_config->sideview_follow_enabled;
@@ -136,37 +136,37 @@ static void update_smooth_follow_params() {
     }
     device_properties_type* device = device_checkout();
     if (device != NULL) {
-        float half_fov = device->fov / 2.0;
+        float half_fov = device->fov / 2.0f;
         if (virtual_display_follow) {
             *sf_params = loose_follow_params;
             float display_size = state()->sbs_mode_enabled ? sf_config->sbs_display_size : sf_config->virtual_display_size;
             float device_fov_threshold = device->fov * display_size / display_distance;
 
             sf_params->lower_angle_threshold = device_fov_threshold;
-            sf_params->upper_angle_threshold = device_fov_threshold * 2.0;
+            sf_params->upper_angle_threshold = device_fov_threshold * 2.0f;
         } else if (smooth_follow) {
             *sf_params = sticky_params;
             bool widescreen = state()->sbs_mode_enabled && is_gamescope_reshade_ipc_connected();
             float threshold = sf_params->lower_angle_threshold;
             if (sf_config->sideview_follow_threshold) threshold = sf_config->sideview_follow_threshold;
-            float display_size = fmax(1.0, sf_config->sideview_display_size * (widescreen ? 2.0 : 1.0));
+            float display_size = fmaxf(1.0f, sf_config->sideview_display_size * (widescreen ? 2.0f : 1.0f));
 
             // this calculation tends to fall short for sizes > 1.0, so increase by 25%
-            threshold += half_fov * (display_size  - 1.0) * 1.25;
+            threshold += half_fov * (display_size  - 1.0f) * 1.25f;
 
-            threshold = fmax(sf_params->lower_angle_threshold, threshold);
+            threshold = fmaxf(sf_params->lower_angle_threshold, threshold);
 
             sf_params->lower_angle_threshold = threshold;
             sf_params->upper_angle_threshold = threshold;
             sf_params->return_to_angle = threshold;
         } else if (breezy_desktop_follow) {
             *sf_params = sticky_params;
-            display_distance = 1.0;
+            display_distance = 1.0f;
             float threshold = sf_params->lower_angle_threshold;
             if (state()->breezy_desktop_display_distance) display_distance = state()->breezy_desktop_display_distance;
             if (state()->breezy_desktop_follow_threshold) threshold = state()->breezy_desktop_follow_threshold;
-            threshold += half_fov * (1.0 / display_distance - 1.0);
-            threshold = fmax(sf_params->lower_angle_threshold, threshold);
+            threshold += half_fov * (1.0f / display_distance - 1.0f);
+            threshold = fmaxf(sf_params->lower_angle_threshold, threshold);
             
             sf_params->lower_angle_threshold = threshold;
             sf_params->upper_angle_threshold = threshold;
@@ -185,7 +185,7 @@ static void update_smooth_follow_params() {
         if (!was_smooth_follow_enabled) {
             // we'll capture the screen center on the next modify_screen_center call, before it changes
             snap_back_to_center = true;
-            start_snap_back_timestamp_ms = -1;
+            start_snap_back_timestamp_ms = UINT32_MAX;
         }
     } else if (was_smooth_follow_enabled && origin_quat && snap_back_to_center) {
         // we'll want to return as close to the original center as possible
@@ -193,7 +193,7 @@ static void update_smooth_follow_params() {
     }
 
     if (smooth_follow_enabled && !was_smooth_follow_enabled) {
-        last_timestamp_ms = -1;
+        last_timestamp_ms = UINT32_MAX;
         *sf_params = init_params;
         follow_state = FOLLOW_STATE_INIT;
     }
@@ -224,11 +224,11 @@ void smooth_follow_set_config_func(void* config) {
     update_smooth_follow_params();
 }
 
-uint32_t follow_wait_time_start_ms = -1;
+uint32_t follow_wait_time_start_ms = UINT32_MAX;
 follow_state_type next_state_for_angle(float angle_degrees) {
     if (follow_state == FOLLOW_STATE_INIT) {
         // double the return-to-angle so the movement will be more aggressive towards the center than usual
-        if (!isnan(angle_degrees) && angle_degrees < sf_params->return_to_angle * 2.0) {
+        if (!isnan(angle_degrees) && angle_degrees < sf_params->return_to_angle * 2.0f) {
             follow_state = FOLLOW_STATE_NONE;
             update_smooth_follow_params();
         }
@@ -256,11 +256,11 @@ follow_state_type next_state_for_angle(float angle_degrees) {
 }
 
 float percent_adjust(float multiplier, float percent, bool inverse) {
-    float percent_compliment = 1.0 - percent;
+    float percent_compliment = 1.0f - percent;
     if (!inverse) return multiplier * percent_compliment + percent;
 
-    float multiplier_compliment = 1.0 - multiplier;
-    return 1.0 - (multiplier_compliment * percent_compliment + percent); 
+    float multiplier_compliment = 1.0f - multiplier;
+    return 1.0f - (multiplier_compliment * percent_compliment + percent); 
 }
 
 // ported and modified from https://github.com/g-truc/glm/blob/master/glm/ext/quaternion_common.inl
@@ -276,9 +276,9 @@ imu_quat_type slerp(imu_quat_type from, imu_quat_type to, float a) {
         // ignore tracking preferences if smooth_follow_enabled is false, since we want to fully return to
         // the original center
         imu_euler_type target_euler;
-        target_euler.roll = (sf_config->track_roll || !smooth_follow_enabled) ? to_euler.roll : 0.0;
-        target_euler.pitch = (sf_config->track_pitch || !smooth_follow_enabled) ? to_euler.pitch : 0.0;
-        target_euler.yaw = (sf_config->track_yaw || !smooth_follow_enabled) ? to_euler.yaw : 0.0;
+        target_euler.roll = (sf_config->track_roll || !smooth_follow_enabled) ? to_euler.roll : 0.0f;
+        target_euler.pitch = (sf_config->track_pitch || !smooth_follow_enabled) ? to_euler.pitch : 0.0f;
+        target_euler.yaw = (sf_config->track_yaw || !smooth_follow_enabled) ? to_euler.yaw : 0.0f;
 
         // the result is relative to origin_quat, so we need to reapply it
         target = multiply_quaternions(*origin_quat, euler_to_quaternion_zyx(target_euler));
@@ -295,8 +295,8 @@ imu_quat_type slerp(imu_quat_type from, imu_quat_type to, float a) {
         target = tmp;
         cosTheta = -cosTheta;
     }
-    float half_angle = acos(cosTheta);
-    follow_state_type next_state = next_state_for_angle(radian_to_degree(2 * half_angle));
+    float half_angle = acosf(cosTheta);
+    follow_state_type next_state = next_state_for_angle(radian_to_degree(2.0f * half_angle));
     if (next_state == FOLLOW_STATE_SLERPING || next_state == FOLLOW_STATE_INIT) {
         // our return-to-angle gives us a margin around the center of the target, and we want to stop when
         // we hit that margin, not the center. if we don't factor that margin into the target, then we may still
@@ -304,7 +304,7 @@ imu_quat_type slerp(imu_quat_type from, imu_quat_type to, float a) {
         // return-to-angle into the target so we accelerate very smoothly to the edge of that margin.
 
         // target 95% of the return-to-angle, otherwise it becomes an asymptote and we'll never stop slerping
-        float target_half_angle = degree_to_radian(sf_params->return_to_angle * 0.95) / 2.0;
+        float target_half_angle = degree_to_radian(sf_params->return_to_angle * 0.95f) / 2.0f;
 
         // how much of the current angle is the target angle, 100% means we're already at the desired return-to-angle
         float target_percent = target_half_angle / half_angle;
@@ -312,10 +312,10 @@ imu_quat_type slerp(imu_quat_type from, imu_quat_type to, float a) {
         // half of the remaining angle to the target
         half_angle -= target_half_angle;
 
-        float a_compliment = 1 - a;
-        float sin_of_angle = sin(half_angle);
-        float from_weight = percent_adjust(sin(a_compliment * half_angle) / sin_of_angle, target_percent, false);
-        float target_weight = percent_adjust(sin(a * half_angle) / sin_of_angle, target_percent, true);
+        float a_compliment = 1.0f - a;
+        float sin_of_angle = sinf(half_angle);
+        float from_weight = percent_adjust(sinf(a_compliment * half_angle) / sin_of_angle, target_percent, false);
+        float target_weight = percent_adjust(sinf(a * half_angle) / sin_of_angle, target_percent, true);
         imu_quat_type result = {
             .w = from_weight * from.w + target_weight * target.w,
             .x = from_weight * from.x + target_weight * target.x,
@@ -335,7 +335,7 @@ imu_quat_type smooth_follow_modify_screen_center_func(uint32_t timestamp_ms, imu
         return screen_center;
     }
 
-    if (last_timestamp_ms == -1) {
+    if (last_timestamp_ms == UINT32_MAX) {
         last_timestamp_ms = timestamp_ms;
         return screen_center;
     }
@@ -374,11 +374,11 @@ imu_quat_type smooth_follow_modify_screen_center_func(uint32_t timestamp_ms, imu
     // smooth follow has been disabled, slerp the screen back to its original center
     if (!smooth_follow_enabled) {
         if (origin_quat && snap_back_to_center) {
-            if (start_snap_back_timestamp_ms == -1) {
+            if (start_snap_back_timestamp_ms == UINT32_MAX) {
                 start_snap_back_timestamp_ms = timestamp_ms;
             }
             uint32_t elapsed_snap_back_ms = timestamp_ms - start_snap_back_timestamp_ms;
-            imu_quat_type result = slerp(screen_center, *origin_quat, 1 - pow(1 - sf_params->interpolation_ratio_ms, elapsed_ms));
+            imu_quat_type result = slerp(screen_center, *origin_quat, 1.0f - powf(1.0f- sf_params->interpolation_ratio_ms, elapsed_ms));
             
             // our return-to-angle is so small it will never hit the target, kill the snap-back slerp after 2 seconds
             if (follow_state == FOLLOW_STATE_NONE || elapsed_snap_back_ms > 2000) {
@@ -392,7 +392,7 @@ imu_quat_type smooth_follow_modify_screen_center_func(uint32_t timestamp_ms, imu
                 free_and_clear(&state()->smooth_follow_origin);
                 state()->smooth_follow_origin_ready = false;
 
-                start_snap_back_timestamp_ms = -1;
+                start_snap_back_timestamp_ms = UINT32_MAX;
             }
 
             return result;
@@ -412,7 +412,7 @@ imu_quat_type smooth_follow_modify_screen_center_func(uint32_t timestamp_ms, imu
         }
     }
 
-    return slerp(screen_center, quat, 1 - pow(1 - sf_params->interpolation_ratio_ms, elapsed_ms));
+    return slerp(screen_center, quat, 1.0f - powf(1.0f - sf_params->interpolation_ratio_ms, elapsed_ms));
 }
 
 // unlike gaming, smooth follow for desktop is a temporary state, handled via control flags rather than persistent config

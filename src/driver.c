@@ -55,7 +55,14 @@ bool captured_screen_center=false;
 imu_quat_type screen_center;
 imu_quat_type screen_center_conjugate;
 
-static bool is_driver_connected() {
+/*
+const char* __ubsan_default_options()
+{
+	return UNDEFINED_BEHAVIOR_SANITIZER_DEFAULT_OPTIONS;
+} // __ubsan_default_options
+*/
+
+static bool is_driver_connected(void) {
     return device_driver != NULL && device_driver->is_connected_func();
 }
 
@@ -147,11 +154,11 @@ void driver_handle_imu_event(uint32_t timestamp_ms, imu_quat_type quat) {
     device_checkin(device);
 }
 
-bool driver_disabled() {
+bool driver_disabled(void) {
     return config()->disabled;
 }
 
-void setup_ipc() {
+void setup_ipc(void) {
     if (!ipc_values) {
         if (config()->debug_ipc) log_debug("setup_ipc, enabling IPC\n");
         ipc_values = calloc(1, sizeof(*ipc_values));
@@ -194,7 +201,7 @@ static bool block_on_device_ready = false;
 
 // reevaluates the conditions that determine whether the block_on_device_thread function can be unblocked,
 // we should call this whenever a condition changes that may effect the evaluation of block_on_device_ready
-void evaluate_block_on_device_ready() {
+void evaluate_block_on_device_ready(void) {
     if (config()->debug_device) 
         log_debug("evaluate_block_on_device_ready, %s, %s, %s\n", 
             force_quit ? "force_quit" : "no force_quit", 
@@ -202,7 +209,7 @@ void evaluate_block_on_device_ready() {
             device_present() ? "device_present" : "no device_present");
 
     pthread_mutex_lock(&block_on_device_mutex);
-    block_on_device_ready = force_quit || !driver_disabled() && device_present();
+    block_on_device_ready = force_quit || (!driver_disabled() && device_present());
     if (block_on_device_ready) pthread_cond_signal(&block_on_device_cond);
     pthread_mutex_unlock(&block_on_device_mutex);
 }
@@ -257,6 +264,7 @@ void *block_on_device_thread_func(void *arg) {
 
     if (config()->debug_threads)
         log_debug("Exiting block_on_device thread; force_quit %d\n", force_quit);
+    return NULL;
 }
 
 void update_config_from_file(FILE *fp) {
@@ -326,7 +334,7 @@ void update_config_from_file(FILE *fp) {
 // pthread function to monitor the config file for changes
 char *config_filename = NULL;
 FILE *config_fp;
-void *monitor_config_file_thread_func(void *arg) {
+void *monitor_config_file_thread_func(__attribute__((unused)) void *arg) {
     config_fp = freopen(config_filename, "r", config_fp);
     update_config_from_file(config_fp);
 
@@ -399,10 +407,11 @@ void *monitor_config_file_thread_func(void *arg) {
 
     if (config()->debug_threads)
         log_debug("Exiting monitor_config_file thread; force_quit: %d\n", force_quit);
+    return NULL;
 }
 
 // pthread function to update the state and read control flags
-void *manage_state_thread_func(void *arg) {
+void *manage_state_thread_func(__attribute__((unused)) void *arg) {
     while (!force_quit) {
         device_properties_type* device = device_checkout();
         update_state_from_device(state(), device, device_driver);
@@ -418,9 +427,10 @@ void *manage_state_thread_func(void *arg) {
 
     if (config()->debug_threads)
         log_debug("Exiting write_state thread; force_quit: %d\n", force_quit);
+    return NULL;
 }
 
-void handle_control_flags_update() {
+void handle_control_flags_update(void) {
     device_properties_type* device = device_checkout();
     if (is_driver_connected()) {
         if (device != NULL && device->sbs_mode_supported && control_flags->sbs_mode != SBS_CONTROL_UNSET) {
@@ -452,7 +462,7 @@ void handle_control_flags_update() {
 }
 
 // pthread function for watching control flags file
-void *monitor_control_flags_file_thread_func(void *arg) {
+void *monitor_control_flags_file_thread_func(__attribute__((unused)) void *arg) {
     char *control_file_path = NULL;
     FILE* fp = get_driver_state_file(control_flags_filename, "r", &control_file_path);
     if (fp) {
@@ -508,6 +518,7 @@ void *monitor_control_flags_file_thread_func(void *arg) {
 
     if (config()->debug_threads)
         log_debug("Exiting monitor_control_flags_file_thread_func thread; force_quit: %d\n", force_quit);
+    return NULL;
 }
 
 void handle_device_update(connected_device_type* usb_device) {
@@ -542,7 +553,7 @@ void handle_device_update(connected_device_type* usb_device) {
     update_state_from_device(state(), connected_device, device_driver);
 }
 
-void *monitor_usb_devices_thread_func(void *arg) {
+void *monitor_usb_devices_thread_func(__attribute__((unused)) void *arg) {
     init_devices(handle_device_update);
     while (!force_quit) {
         handle_device_connection_events();
@@ -551,9 +562,10 @@ void *monitor_usb_devices_thread_func(void *arg) {
 
     if (config()->debug_threads)
         log_debug("Exiting monitor_usb_devices_thread_func thread; force_quit: %d\n", force_quit);
+    return NULL;
 }
 
-void segfault_handler(int signal, siginfo_t *si, void *arg) {
+void segfault_handler(__attribute__((unused)) int signal, siginfo_t *si, __attribute__((unused)) void *arg) {
     void *error_addr = si->si_addr;
 
     // Write the error address to stderr
@@ -568,7 +580,7 @@ void segfault_handler(int signal, siginfo_t *si, void *arg) {
     exit(EXIT_FAILURE);
 }
 
-int main(int argc, const char** argv) {
+int main(__attribute__((unused)) int argc, __attribute__((unused)) const char** argv) {
     struct sigaction sa;
     sa.sa_flags = SA_SIGINFO;
     sa.sa_sigaction = segfault_handler;

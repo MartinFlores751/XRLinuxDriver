@@ -13,7 +13,7 @@ const int target_device_vendor_id = CUSTOM_BANNER_TARGET_DEVICE_VENDOR_ID;
 const int target_device_product_id = CUSTOM_BANNER_TARGET_DEVICE_PRODUCT_ID;
 
 custom_banner_ipc_values_type *custom_banner_ipc_values;
-void evaluate_banner_conditions() {
+void evaluate_banner_conditions(void) {
     device_properties_type* device = device_checkout();
     if (device != NULL) {
         if (custom_banner_ipc_values) {
@@ -47,7 +47,7 @@ void evaluate_banner_conditions() {
 
 const char *custom_banner_enabled_name = "custom_banner_enabled";
 
-bool custom_banner_setup_ipc_func() {
+bool custom_banner_setup_ipc_func(void) {
     bool debug = config()->debug_ipc;
     if (!custom_banner_ipc_values) custom_banner_ipc_values = calloc(1, sizeof(custom_banner_ipc_values_type));
     setup_ipc_value(custom_banner_enabled_name, (void**) &custom_banner_ipc_values->enabled, sizeof(bool), debug);
@@ -57,13 +57,13 @@ bool custom_banner_setup_ipc_func() {
     return true;
 }
 
-void custom_banner_handle_device_connect_func() {
+void custom_banner_handle_device_connect_func(void) {
     evaluate_banner_conditions();
-};
+}
 
-void custom_banner_reset_imu_data_func() {
+void custom_banner_reset_imu_data_func(void) {
     evaluate_banner_conditions();
-};
+}
 
 const plugin_type custom_banner_plugin = {
     .id = "custom_banner",
