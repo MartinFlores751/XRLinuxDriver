@@ -140,7 +140,10 @@ int get_license_features(FILE* file, char*** features) {
         int features_count = 0;
         bool valid_license = false;
         if (is_valid_license_signature(json_object_get_string(license), json_object_get_string(signature))) {
-            json_object *license_root = json_tokener_parse(json_object_get_string(license));
+            json_tokener *tok_again = json_tokener_new();
+            const char* str_thang = json_object_get_string(license);
+            json_object *license_root = json_tokener_parse_ex(tok_again, str_thang, strlen(str_thang));
+	    free(tok_again);
             json_object *hardwareId;
             json_object_object_get_ex(license_root, "hardwareId", &hardwareId);
             if (strcmp(json_object_get_string(hardwareId), get_hardware_id()) == 0) {
